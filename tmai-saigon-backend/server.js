@@ -10,9 +10,25 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+const User = require('./models/User');
+const auth = require('./middleware/auth');
+const jwt = require('jsonwebtoken');
+
 console.log('URI from process.env:', process.env.MONGODB_URI);
 mongoose.connect(process.env.MONGODB_URI)
-  .then(() => console.log('Connected to MongoDB'))
+  .then(async () => {
+    console.log('Connected to MongoDB');
+    // Auto setup admin account like Portfolio
+    const adminExists = await User.findOne({ username: 'louis' });
+    if (!adminExists) {
+      const admin = new User({ 
+        username: 'louis', 
+        password: process.env.ADMIN_PASSWORD || 'louisan9911' 
+      });
+      await admin.save();
+      console.log('✅ Đã tự động khởi tạo tài khoản Admin: [louis] thành công!');
+    }
+  })
   .catch((err) => console.error('MongoDB connection error:', err));
 
 cloudinary.config({
@@ -47,7 +63,37 @@ app.get('/api/content/:category', async (req, res) => {
   }
 });
 
-app.post('/api/content', upload.single('image'), async (req, res) => {
+// Auth Routes
+app.post('/api/auth/setup', async (req, res) => {
+  try {
+    const adminExists = await User.findOne({ username: 'admin' });
+    if (adminExists) return res.status(400).json({ message: 'Admin already exists' });
+
+    const admin = new User({ username: 'admin', password: process.env.ADMIN_PASSWORD || 'tmai123' });
+    await admin.save();
+    res.json({ message: 'Admin created successfully' });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to create admin' });
+  }
+});
+
+app.post('/api/auth/login', async (req, res) => {
+  try {
+    const { username, password } = req.body;
+    const user = await User.findOne({ username });
+    if (!user) return res.status(400).json({ error: 'Invalid credentials' });
+
+    const isMatch = await user.comparePassword(password);
+    if (!isMatch) return res.status(400).json({ error: 'Invalid credentials' });
+
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET || 'your_super_secret_key', { expiresIn: '1d' });
+    res.json({ token });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.post('/api/content', auth, upload.single('image'), async (req, res) => {
   try {
     const { category, alt, description, link, text } = req.body;
     const content = new Content({
@@ -65,7 +111,7 @@ app.post('/api/content', upload.single('image'), async (req, res) => {
   }
 });
 
-app.put('/api/content/:id', upload.single('image'), async (req, res) => {
+app.put('/api/content/:id', auth, upload.single('image'), async (req, res) => {
   try {
     const { category, alt, description, link, text } = req.body;
     const updateData = { category, alt, description, link, text };
@@ -78,7 +124,7 @@ app.put('/api/content/:id', upload.single('image'), async (req, res) => {
   }
 });
 
-app.delete('/api/content/:id', async (req, res) => {
+app.delete('/api/content/:id', auth, async (req, res) => {
   try {
     const content = await Content.findByIdAndDelete(req.params.id);
     if (!content) return res.status(404).json({ error: 'Content not found' });

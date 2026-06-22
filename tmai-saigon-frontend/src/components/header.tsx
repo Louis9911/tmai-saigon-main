@@ -58,10 +58,7 @@ export default function Header() {
               <a className="hover:text-gray-300" href="#lienhe">
                 Liên hệ
               </a>
-            </nav>
-            <Link  href="/admin" className="bg-gradient-to-r from-[#a076f9] to-[#6528f7] text-white px-4 py-2 rounded-full border border-gray-400 ms-10">
-                Admin Panel
-              </Link>
+              </nav>
           </div>
         </div>
       </div>

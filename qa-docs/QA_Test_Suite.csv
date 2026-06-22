@@ -1,0 +1,7 @@
+Test ID,Test Condition Inferred from Code,Input Data to Trigger,Expected System Response (Code Behavior)
+TCT_001,Trigger catch block on product API failure,Mock API failure (500) for /api/content/products-investment,UI displays "Error loading products"; loading spinner disappears.
+TCT_002,Empty data array returned from API,Mock API returns [] for all endpoints,UI renders headings but no product cards; no crash.
+TCT_003,Missing url or link in API response,Mock API returns object without url or link,UI renders fallback /placeholder.svg and link points to #.
+TCT_004,High latency on one API,Delay /api/content/products-book by 5 seconds,UI displays "Loading..." for 5 seconds until all promises resolve.
+TCT_005,Brands API failure,Mock API failure (404) for /api/content/cooperation,UI displays "Error loading brands" text; no crash.
+TCT_006,Malformed API response,Mock API returns an Object instead of an Array,Triggers runtime error. (Needs ErrorBoundary validation)
